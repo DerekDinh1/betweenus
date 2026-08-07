@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Between Us · a card game for two</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#f4e9dd;
+    --paper:#f6ede1;
+    --paper-ink:#3c2b34;
+    --muted:#b79bab;
+    /* page + deck colours, set per category */
+    --bg-glow:#4a2a44;
+    --bg-1:#241726;
+    --bg-edge:#1c1220;
+    --card-1:#4a2a44;
+    --card-2:#2b1a2b;
+    /* level accents (light to deep) */
+    --l1:#f0a7a0; /* tier 1 - peach blush */
+    --l2:#e6ac52; /* tier 2 - honey gold */
+    --l3:#c4576d; /* tier 3 - garnet rose */
+    --gold:#e6ac52;
+    --line:230,172,82; /* card-back accent, set per category */
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:'Jost',sans-serif;
+    color:#f4e9dd;
+    background-color:var(--bg-edge);
+    background-image:
+      radial-gradient(120% 90% at 50% -10%, var(--bg-glow) 0%, var(--bg-1) 55%, var(--bg-edge) 100%);
+    transition:background-color .6s ease;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:26px 20px 40px;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+
+  /* ---- Header ---- */
+  .brand{text-align:center;margin-bottom:18px}
+  .brand .eyebrow{
+    font-size:11px;letter-spacing:.42em;text-transform:uppercase;
+    color:var(--muted);margin-bottom:8px;
+  }
+  .brand h1{
+    font-family:'Fraunces',serif;font-weight:400;font-style:italic;
+    font-size:clamp(34px,7vw,50px);line-height:1;color:#f6ede1;
+  }
+  .brand h1 em{font-style:normal;color:var(--gold)}
+  .brand .sub{font-size:12.5px;color:var(--muted);margin-top:10px;letter-spacing:.02em;max-width:340px}
+
+  /* ---- Category selector ---- */
+  .cats{
+    display:flex;gap:6px;justify-content:center;
+    background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.1);
+    padding:5px;border-radius:100px;margin:4px 0 16px;
+  }
+  .cat{
+    font-family:'Jost',sans-serif;font-size:12px;font-weight:600;
+    letter-spacing:.14em;text-transform:uppercase;
+    color:var(--muted);background:transparent;border:none;
+    padding:9px 16px;border-radius:100px;cursor:pointer;
+    transition:all .25s ease;
+  }
+  .cat:hover{color:#f4e9dd}
+  .cat.active{
+    color:#241726;background:var(--gold);
+    box-shadow:0 6px 20px -8px var(--gold);
+  }
+
+  /* ---- Level selector ---- */
+  .levels{
+    display:flex;gap:8px;flex-wrap:wrap;justify-content:center;
+    margin:2px 0 24px;
+  }
+  .lvl{
+    font-family:'Jost',sans-serif;font-size:12px;font-weight:500;
+    letter-spacing:.16em;text-transform:uppercase;
+    color:var(--muted);background:transparent;
+    border:1px solid rgba(255,255,255,.14);
+    padding:9px 15px;border-radius:100px;cursor:pointer;
+    transition:all .25s ease;display:flex;align-items:center;gap:7px;
+  }
+  .lvl .dot{width:8px;height:8px;border-radius:50%;background:currentColor;opacity:.85}
+  .lvl[data-l="1"]{--c:var(--l1)} .lvl[data-l="2"]{--c:var(--l2)}
+  .lvl[data-l="3"]{--c:var(--l3)} .lvl[data-l="all"]{--c:#e9d8c4}
+  .lvl:hover{color:#f4e9dd;border-color:rgba(255,255,255,.3)}
+  .lvl.active{
+    color:#241726;background:var(--c);border-color:var(--c);
+    box-shadow:0 6px 22px -8px var(--c);
+  }
+  .lvl.active .dot{background:#241726;opacity:.6}
+
+  /* ---- Card ---- */
+  .stage{perspective:1600px;width:100%;max-width:360px;margin-bottom:26px}
+  .card{
+    position:relative;width:100%;aspect-ratio:63/88;
+    transform-style:preserve-3d;
+    transition:transform .62s cubic-bezier(.2,.7,.2,1);
+    cursor:pointer;
+  }
+  .card.flipped{transform:rotateY(180deg)}
+  .face{
+    position:absolute;inset:0;backface-visibility:hidden;
+    border-radius:22px;overflow:hidden;
+    display:flex;flex-direction:column;
+  }
+
+  /* back of card */
+  .back{
+    background:linear-gradient(150deg,var(--card-1),var(--card-2));
+    border:1px solid rgba(var(--line),.32);
+    align-items:center;justify-content:center;text-align:center;
+    box-shadow:0 30px 60px -30px rgba(0,0,0,.8),
+               inset 0 0 0 1px rgba(255,255,255,.04);
+  }
+  .back .ring{
+    width:96px;height:96px;border-radius:50%;
+    border:1px solid rgba(var(--line),.5);
+    display:flex;align-items:center;justify-content:center;
+    margin-bottom:20px;position:relative;
+  }
+  .back .ring::before{
+    content:"";position:absolute;inset:8px;border-radius:50%;
+    border:1px solid rgba(var(--line),.22);
+  }
+  .back .amp{font-family:'Fraunces',serif;font-style:italic;font-size:40px;color:var(--gold)}
+  .back .label{
+    font-size:11px;letter-spacing:.4em;text-transform:uppercase;color:var(--muted);
+  }
+  .back .hint{
+    position:absolute;bottom:22px;font-size:11px;letter-spacing:.14em;
+    text-transform:uppercase;color:rgba(183,155,171,.7);
+  }
+  .back .corner{
+    position:absolute;font-family:'Fraunces',serif;font-style:italic;
+    color:rgba(var(--line),.55);font-size:15px;
+  }
+  .back .tl{top:16px;left:18px}.back .br{bottom:16px;right:18px}
+
+  /* front of card */
+  .front{
+    transform:rotateY(180deg);
+    background:var(--paper);color:var(--paper-ink);
+    padding:30px 28px;justify-content:space-between;
+    box-shadow:0 30px 60px -30px rgba(0,0,0,.8);
+    border:1px solid rgba(0,0,0,.06);
+  }
+  .front::before{ /* level ribbon */
+    content:"";position:absolute;top:0;left:0;right:0;height:6px;
+    background:var(--accent,var(--l1));
+  }
+  .front .top{display:flex;justify-content:space-between;align-items:baseline}
+  .front .tier{
+    font-size:10.5px;letter-spacing:.28em;text-transform:uppercase;
+    color:var(--accent,var(--l1));font-weight:600;
+  }
+  .front .idx{font-family:'Fraunces',serif;font-style:italic;font-size:13px;color:#a48f9a}
+  .q{
+    font-family:'Fraunces',serif;font-weight:400;
+    font-size:clamp(21px,5.4vw,26px);line-height:1.32;
+    display:flex;align-items:center;flex:1;padding:16px 0;
+  }
+  .front .foot{
+    font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:#b09aa4;
+    display:flex;justify-content:space-between;align-items:center;
+  }
+  .front .foot .quiet{font-style:italic;font-family:'Fraunces',serif;text-transform:none;letter-spacing:0;font-size:12px}
+
+  /* ---- Controls ---- */
+  .controls{display:flex;flex-direction:column;align-items:center;gap:14px;width:100%;max-width:360px}
+  .draw{
+    width:100%;font-family:'Jost',sans-serif;font-weight:600;
+    font-size:14px;letter-spacing:.16em;text-transform:uppercase;
+    color:#241726;background:var(--gold);border:none;
+    padding:16px;border-radius:100px;cursor:pointer;
+    transition:transform .15s ease, box-shadow .25s ease, background .25s ease;
+    box-shadow:0 12px 30px -12px var(--gold);
+  }
+  .draw:hover{transform:translateY(-2px)}
+  .draw:active{transform:translateY(0)}
+  .meta{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);text-align:center;min-height:16px}
+
+  @media (prefers-reduced-motion: reduce){
+    .card{transition:none}
+    .draw{transition:none}
+  }
+</style>
+</head>
+<body>
+  <div class="brand">
+    <div class="eyebrow">A card game for two</div>
+    <h1>Between <em>&amp;</em> Us</h1>
+    <div class="sub">Choose who you are playing with, pick a depth, and take turns answering. No wrong answers, no rushing.</div>
+  </div>
+
+  <div class="cats" id="cats">
+    <button class="cat active" data-cat="couples">Couples</button>
+    <button class="cat" data-cat="friends">Friends</button>
+    <button class="cat" data-cat="strangers">Strangers</button>
+  </div>
+
+  <div class="levels" id="levels"></div>
+
+  <div class="stage">
+    <div class="card" id="card">
+      <div class="face back">
+        <span class="corner tl">&amp;</span>
+        <span class="corner br">&amp;</span>
+        <div class="ring"><span class="amp">&amp;</span></div>
+        <div class="label" id="backLabel">Couples</div>
+        <div class="hint" id="backHint">Tap to draw</div>
+      </div>
+      <div class="face front" id="front">
+        <div class="top">
+          <span class="tier" id="tier">Spark</span>
+          <span class="idx" id="idx"></span>
+        </div>
+        <div class="q" id="question"></div>
+        <div class="foot">
+          <span class="quiet">Take turns.</span>
+          <span id="footRight"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="draw" id="draw">Draw a card</button>
+    <div class="meta" id="meta"></div>
+  </div>
+
+<script>
+  // All prompts are original, written in the spirit of connection card games.
+  // Every category has three tiers of depth (1 = light, 2 = reflective, 3 = deep).
+  const DECK = [
+    /* ===================== COUPLES ===================== */
+    // Couples - Tier 1: Spark (30)
+    {cat:"couples", l:1, q:"What is a small thing I do that always makes you smile?"},
+    {cat:"couples", l:1, q:"If we could relive one completely ordinary day together, which would you choose?"},
+    {cat:"couples", l:1, q:"What song instantly reminds you of us?"},
+    {cat:"couples", l:1, q:"Which of my everyday habits have you secretly grown fond of?"},
+    {cat:"couples", l:1, q:"What meal, place, or ritual feels the most like \u201cours\u201d?"},
+    {cat:"couples", l:1, q:"When did you first catch yourself thinking you could love me?"},
+    {cat:"couples", l:1, q:"If we swapped roles for a whole day, what would you do first?"},
+    {cat:"couples", l:1, q:"What is the most ridiculous thing we have ever laughed about together?"},
+    {cat:"couples", l:1, q:"If you planned a surprise day just for me, what would you fill it with?"},
+    {cat:"couples", l:1, q:"What nickname or inside joke of ours would completely confuse everyone else?"},
+    {cat:"couples", l:1, q:"What is a tiny luxury you wish the two of us did more often?"},
+    {cat:"couples", l:1, q:"If our life together had a theme song, what would you pick?"},
+    {cat:"couples", l:1, q:"What is your favorite photo of us, and what do you remember from that day?"},
+    {cat:"couples", l:1, q:"What is something new you would love for us to try together this year?"},
+    {cat:"couples", l:1, q:"What smell or taste instantly takes you back to an early date with me?"},
+    {cat:"couples", l:1, q:"If we won a free weekend anywhere tomorrow, where would you want to go?"},
+    {cat:"couples", l:1, q:"What is the most attractive thing about me that has nothing to do with looks?"},
+    {cat:"couples", l:1, q:"What is a story about us that you love retelling to other people?"},
+    {cat:"couples", l:1, q:"If you could freeze one recent moment with me, which would it be?"},
+    {cat:"couples", l:1, q:"What do you hope we are still doing together when we are eighty?"},
+    {cat:"couples", l:1, q:"What is your favorite thing about our mornings together?"},
+    {cat:"couples", l:1, q:"If we opened a little shop together, what would we sell?"},
+    {cat:"couples", l:1, q:"What is a compliment you have wanted to give me but never said out loud?"},
+    {cat:"couples", l:1, q:"What is your favorite way we waste time together?"},
+    {cat:"couples", l:1, q:"What was going through your mind the first time we kissed?"},
+    {cat:"couples", l:1, q:"If we could teleport to any restaurant right now, where would we eat?"},
+    {cat:"couples", l:1, q:"What is a small tradition you would love for us to start?"},
+    {cat:"couples", l:1, q:"What is the funniest thing you have learned about me since we met?"},
+    {cat:"couples", l:1, q:"What is your favorite outfit you have ever seen me wear?"},
+    {cat:"couples", l:1, q:"If our relationship were a movie genre, what would it be?"},
+
+    // Couples - Tier 2: Depths (30)
+    {cat:"couples", l:2, q:"When do you feel the most loved by me?"},
+    {cat:"couples", l:2, q:"What is something you\u2019ve wanted to tell me but haven\u2019t found the right moment for?"},
+    {cat:"couples", l:2, q:"How has being with me changed the way you see yourself?"},
+    {cat:"couples", l:2, q:"What do you need more of from me lately?"},
+    {cat:"couples", l:2, q:"When was a moment you felt genuinely proud of us?"},
+    {cat:"couples", l:2, q:"How can I support you better on the days you feel overwhelmed?"},
+    {cat:"couples", l:2, q:"What is a dream of yours that you hope we build together?"},
+    {cat:"couples", l:2, q:"What does love look like to you in the small, unglamorous moments?"},
+    {cat:"couples", l:2, q:"What is one way you feel you\u2019ve grown since we got together?"},
+    {cat:"couples", l:2, q:"When do you feel the most like yourself around me?"},
+    {cat:"couples", l:2, q:"What is something you admire about how I move through the world?"},
+    {cat:"couples", l:2, q:"What did you learn about love from the home you grew up in?"},
+    {cat:"couples", l:2, q:"How do you most naturally give love, and how do you most like to receive it?"},
+    {cat:"couples", l:2, q:"What is a worry about us that you\u2019d feel relieved to say out loud?"},
+    {cat:"couples", l:2, q:"When was a time I made you feel truly seen?"},
+    {cat:"couples", l:2, q:"What is a value you hope the two of us live by together?"},
+    {cat:"couples", l:2, q:"What part of our life together are you most grateful for right now?"},
+    {cat:"couples", l:2, q:"Where do you hope we are, together, five years from now?"},
+    {cat:"couples", l:2, q:"What is something you wish I understood better about you?"},
+    {cat:"couples", l:2, q:"What is something hard we\u2019ve been through that ended up making us stronger?"},
+    {cat:"couples", l:2, q:"What is something I do that makes you feel truly at ease?"},
+    {cat:"couples", l:2, q:"How do you hope we handle the hard seasons that are still ahead of us?"},
+    {cat:"couples", l:2, q:"What is a lesson from a past relationship that you carry into ours?"},
+    {cat:"couples", l:2, q:"What makes you feel most respected by me?"},
+    {cat:"couples", l:2, q:"When do you feel we are the strongest as a team?"},
+    {cat:"couples", l:2, q:"What is a version of our future together that excites you the most?"},
+    {cat:"couples", l:2, q:"What do you think I underestimate about myself?"},
+    {cat:"couples", l:2, q:"How has your idea of a good partnership changed over time?"},
+    {cat:"couples", l:2, q:"What do you hope we are still learning together in twenty years?"},
+    {cat:"couples", l:2, q:"What is something you want us to prioritize more as a couple?"},
+
+    // Couples - Tier 3: Bare (30)
+    {cat:"couples", l:3, q:"What is a wound from your past that still shapes how you love?"},
+    {cat:"couples", l:3, q:"Is there something you\u2019ve been afraid to ask me for?"},
+    {cat:"couples", l:3, q:"When have you felt most distant from me, and what would have helped?"},
+    {cat:"couples", l:3, q:"What does \u201chome\u201d mean to you, and do you feel it with me?"},
+    {cat:"couples", l:3, q:"What is one thing you hope we never lose as we grow older?"},
+    {cat:"couples", l:3, q:"If we grow very old together, what do you hope I remember about you?"},
+    {cat:"couples", l:3, q:"What is something you\u2019ve rarely told anyone that you would trust me with?"},
+    {cat:"couples", l:3, q:"When do you feel most insecure in our relationship?"},
+    {cat:"couples", l:3, q:"Is there a part of yourself you sometimes hide from me, and why?"},
+    {cat:"couples", l:3, q:"What do you need from me when you\u2019re hurting that you find hard to ask for?"},
+    {cat:"couples", l:3, q:"Is there an old hurt between us that you feel still needs healing?"},
+    {cat:"couples", l:3, q:"What are you most afraid of losing?"},
+    {cat:"couples", l:3, q:"When have you felt truly safe with me, and when have you not?"},
+    {cat:"couples", l:3, q:"What is a way you\u2019d like to grow that scares you a little?"},
+    {cat:"couples", l:3, q:"What do you worry about most when you imagine us getting older?"},
+    {cat:"couples", l:3, q:"Is there a version of your life you sometimes wonder about or quietly grieve?"},
+    {cat:"couples", l:3, q:"What is the most honest thing you could say about how you\u2019re really doing right now?"},
+    {cat:"couples", l:3, q:"What is something you hope I forgive you for?"},
+    {cat:"couples", l:3, q:"What do you most want to feel certain of when it comes to us?"},
+    {cat:"couples", l:3, q:"When you picture us at our best, years from now, what do you see?"},
+    {cat:"couples", l:3, q:"What is a fear about being loved that you rarely admit?"},
+    {cat:"couples", l:3, q:"Is there something you have forgiven me for that I never fully knew about?"},
+    {cat:"couples", l:3, q:"What is the hardest thing for you to be honest about with me?"},
+    {cat:"couples", l:3, q:"When do you feel most alone, even when we are together?"},
+    {cat:"couples", l:3, q:"What is a need of yours that you worry is too much to ask for?"},
+    {cat:"couples", l:3, q:"What part of your heart are you still learning to trust me with?"},
+    {cat:"couples", l:3, q:"Is there a grief you carry that you would like me to understand?"},
+    {cat:"couples", l:3, q:"What would you want me to hold onto if I ever doubted your love?"},
+    {cat:"couples", l:3, q:"What is something about our closeness you have wanted to talk about?"},
+    {cat:"couples", l:3, q:"If today were our last ordinary day, what would you want me to know?"},
+
+    /* ===================== FRIENDS ===================== */
+    // Friends - Tier 1: Casual (20)
+    {cat:"friends", l:1, q:"What was your honest first impression of me?"},
+    {cat:"friends", l:1, q:"What is a small thing that instantly makes a hangout better?"},
+    {cat:"friends", l:1, q:"What is the most fun we have ever had together?"},
+    {cat:"friends", l:1, q:"What is a hobby you wish we could do together more often?"},
+    {cat:"friends", l:1, q:"What song reminds you of our friendship?"},
+    {cat:"friends", l:1, q:"What is something you find genuinely funny about me?"},
+    {cat:"friends", l:1, q:"If we planned the perfect lazy day, what would it look like?"},
+    {cat:"friends", l:1, q:"What is a place you would love for us to travel to together?"},
+    {cat:"friends", l:1, q:"What is your favorite memory of us so far?"},
+    {cat:"friends", l:1, q:"What is a talent of mine you think is underrated?"},
+    {cat:"friends", l:1, q:"If we started a podcast together, what would it be about?"},
+    {cat:"friends", l:1, q:"What is a comfort food that reminds you of good times with friends?"},
+    {cat:"friends", l:1, q:"What is something you have always wanted to try but not alone?"},
+    {cat:"friends", l:1, q:"What is the best advice I have ever accidentally given you?"},
+    {cat:"friends", l:1, q:"What is a tradition you would like us to keep for years?"},
+    {cat:"friends", l:1, q:"What is a movie or show you think we absolutely have to watch together?"},
+    {cat:"friends", l:1, q:"What is a nickname you have secretly wanted to call me?"},
+    {cat:"friends", l:1, q:"What is your favorite way we make each other laugh?"},
+    {cat:"friends", l:1, q:"What is something you appreciate about how we spend time together?"},
+    {cat:"friends", l:1, q:"If we swapped lives for a day, what would surprise you most?"},
+
+    // Friends - Tier 2: Candid (20)
+    {cat:"friends", l:2, q:"When did you know we were going to be real friends?"},
+    {cat:"friends", l:2, q:"What is something you admire about the way I handle things?"},
+    {cat:"friends", l:2, q:"What is a way I have helped you without realizing it?"},
+    {cat:"friends", l:2, q:"What do you value most in a friendship?"},
+    {cat:"friends", l:2, q:"When do you feel most understood by me?"},
+    {cat:"friends", l:2, q:"What is something you wish we talked about more?"},
+    {cat:"friends", l:2, q:"How do you like to be supported when you are going through something hard?"},
+    {cat:"friends", l:2, q:"What is a goal of yours that you would want me to cheer you on for?"},
+    {cat:"friends", l:2, q:"What is something you have changed your mind about since we became friends?"},
+    {cat:"friends", l:2, q:"What is a quality in me that you would want more of in yourself?"},
+    {cat:"friends", l:2, q:"When was a time you felt proud of me?"},
+    {cat:"friends", l:2, q:"What does loyalty mean to you?"},
+    {cat:"friends", l:2, q:"What is something about your life right now that you are still figuring out?"},
+    {cat:"friends", l:2, q:"How do you know when you can really trust someone?"},
+    {cat:"friends", l:2, q:"What is a mistake you learned the most from?"},
+    {cat:"friends", l:2, q:"What is something you need more of in your friendships?"},
+    {cat:"friends", l:2, q:"When do you feel the most like yourself?"},
+    {cat:"friends", l:2, q:"What is a dream you have not told many people about?"},
+    {cat:"friends", l:2, q:"What is something you hope always stays true about our friendship?"},
+    {cat:"friends", l:2, q:"What is a fear you have that you rarely say out loud?"},
+
+    // Friends - Tier 3: Close (20)
+    {cat:"friends", l:3, q:"What is something you have never told me but feel you could?"},
+    {cat:"friends", l:3, q:"When have you felt most alone, and did you reach out to anyone?"},
+    {cat:"friends", l:3, q:"What is a wound from your past that still affects you?"},
+    {cat:"friends", l:3, q:"What is something you are afraid people would think if they really knew you?"},
+    {cat:"friends", l:3, q:"Have I ever let you down in a way we never talked about?"},
+    {cat:"friends", l:3, q:"What do you need from our friendship that you have not asked for?"},
+    {cat:"friends", l:3, q:"What is a part of yourself you are still learning to accept?"},
+    {cat:"friends", l:3, q:"What is a fear you have about your future?"},
+    {cat:"friends", l:3, q:"What is something you are grieving right now, quietly?"},
+    {cat:"friends", l:3, q:"When do you feel the most misunderstood?"},
+    {cat:"friends", l:3, q:"What is the hardest truth you have had to accept about yourself?"},
+    {cat:"friends", l:3, q:"What do you wish more people knew about what you are going through?"},
+    {cat:"friends", l:3, q:"What is something you are trying to forgive yourself for?"},
+    {cat:"friends", l:3, q:"What does unconditional support look like to you?"},
+    {cat:"friends", l:3, q:"When have you felt most seen by me?"},
+    {cat:"friends", l:3, q:"What is a relationship in your life you wish were different?"},
+    {cat:"friends", l:3, q:"What is a secret hope you hold for your life?"},
+    {cat:"friends", l:3, q:"What is something you are carrying that feels too heavy to hold alone?"},
+    {cat:"friends", l:3, q:"What would you want said about you if you could quietly overhear it?"},
+    {cat:"friends", l:3, q:"What do you most want me to understand about you?"},
+
+    /* ===================== STRANGERS ===================== */
+    // Strangers - Tier 1: Icebreak (20)
+    {cat:"strangers", l:1, q:"What is something small that made you smile today?"},
+    {cat:"strangers", l:1, q:"If you could master any skill instantly, what would it be?"},
+    {cat:"strangers", l:1, q:"What is your go-to comfort meal?"},
+    {cat:"strangers", l:1, q:"What is a place you have always wanted to visit?"},
+    {cat:"strangers", l:1, q:"What is a song you never skip?"},
+    {cat:"strangers", l:1, q:"What is a hobby you could talk about for hours?"},
+    {cat:"strangers", l:1, q:"If you had a free day with zero obligations, how would you spend it?"},
+    {cat:"strangers", l:1, q:"What is the best thing you have watched or read recently?"},
+    {cat:"strangers", l:1, q:"Are you more of a morning or a night person, and why?"},
+    {cat:"strangers", l:1, q:"What is a small thing that instantly improves your mood?"},
+    {cat:"strangers", l:1, q:"What is something you are looking forward to?"},
+    {cat:"strangers", l:1, q:"If you could have dinner with anyone living, who would it be?"},
+    {cat:"strangers", l:1, q:"What is a strong but completely harmless opinion you hold?"},
+    {cat:"strangers", l:1, q:"What is your favorite way to spend a weekend?"},
+    {cat:"strangers", l:1, q:"What is something you have gotten better at recently?"},
+    {cat:"strangers", l:1, q:"If you could live anywhere for a year, where would you go?"},
+    {cat:"strangers", l:1, q:"What is a compliment you received that has stuck with you?"},
+    {cat:"strangers", l:1, q:"What is a random fact you love telling people?"},
+    {cat:"strangers", l:1, q:"What is a small adventure you would say yes to right now?"},
+    {cat:"strangers", l:1, q:"What is something that always makes you laugh?"},
+
+    // Strangers - Tier 2: Curious (20)
+    {cat:"strangers", l:2, q:"What is something you have changed your mind about recently?"},
+    {cat:"strangers", l:2, q:"What is a moment that helped shape who you are?"},
+    {cat:"strangers", l:2, q:"What are you most curious about lately?"},
+    {cat:"strangers", l:2, q:"What does a good life look like to you?"},
+    {cat:"strangers", l:2, q:"What is something you are working toward right now?"},
+    {cat:"strangers", l:2, q:"What is a belief you hold that not everyone shares?"},
+    {cat:"strangers", l:2, q:"What is something you wish more people understood?"},
+    {cat:"strangers", l:2, q:"When do you feel the most like yourself?"},
+    {cat:"strangers", l:2, q:"What is a risk you took that you are glad you took?"},
+    {cat:"strangers", l:2, q:"What is something you are proud of that you rarely mention?"},
+    {cat:"strangers", l:2, q:"What is a question you wish people asked you more?"},
+    {cat:"strangers", l:2, q:"How do you hope to be remembered?"},
+    {cat:"strangers", l:2, q:"What is a lesson life taught you the hard way?"},
+    {cat:"strangers", l:2, q:"What is something you are still figuring out?"},
+    {cat:"strangers", l:2, q:"What makes you feel the most alive?"},
+    {cat:"strangers", l:2, q:"What is a dream you have not given up on?"},
+    {cat:"strangers", l:2, q:"What is something you value more now than you used to?"},
+    {cat:"strangers", l:2, q:"What is a small act of kindness that has stayed with you?"},
+    {cat:"strangers", l:2, q:"What is a fear you are slowly getting over?"},
+    {cat:"strangers", l:2, q:"What is something you hope is true about the world?"},
+
+    // Strangers - Tier 3: Unfiltered (20)
+    {cat:"strangers", l:3, q:"What is something you rarely say out loud but is true for you?"},
+    {cat:"strangers", l:3, q:"What is a fear that quietly shapes your choices?"},
+    {cat:"strangers", l:3, q:"When did you last feel truly understood?"},
+    {cat:"strangers", l:3, q:"What is something you are still healing from?"},
+    {cat:"strangers", l:3, q:"What do you wish you could tell your younger self?"},
+    {cat:"strangers", l:3, q:"What is a regret you carry?"},
+    {cat:"strangers", l:3, q:"When do you feel the most alone?"},
+    {cat:"strangers", l:3, q:"What is something about yourself you are still learning to accept?"},
+    {cat:"strangers", l:3, q:"What would you do if you knew you could not fail?"},
+    {cat:"strangers", l:3, q:"What is a grief you do not talk about often?"},
+    {cat:"strangers", l:3, q:"What does love mean to you?"},
+    {cat:"strangers", l:3, q:"What is a truth about your life you have made peace with?"},
+    {cat:"strangers", l:3, q:"What matters most to you now that did not before?"},
+    {cat:"strangers", l:3, q:"What is something you long for?"},
+    {cat:"strangers", l:3, q:"When have you felt most alive and most afraid at the same time?"},
+    {cat:"strangers", l:3, q:"What is a version of your life you sometimes wonder about?"},
+    {cat:"strangers", l:3, q:"What do you want more of in your life?"},
+    {cat:"strangers", l:3, q:"What is something you needed to hear when things were hard?"},
+    {cat:"strangers", l:3, q:"What do you hope people feel when they are around you?"},
+    {cat:"strangers", l:3, q:"If this was the only conversation we ever had, what would you want me to remember about you?"},
+  ];
+
+  const CATS = {
+    couples:  { name:"Couples",   tiers:{1:"Spark",    2:"Depths",  3:"Bare"} },
+    friends:  { name:"Friends",   tiers:{1:"Casual",   2:"Candid",  3:"Close"} },
+    strangers:{ name:"Strangers", tiers:{1:"Icebreak", 2:"Curious", 3:"Unfiltered"} },
+  };
+  const TIER_COLOR = {1:"var(--l1)", 2:"var(--l2)", 3:"var(--l3)"};
+
+  // Each category has its own colour identity: three tier accents (light to deep),
+  // a UI accent (buttons / active pills), and a card-back line colour.
+  const THEME = {
+    couples:  {l1:"#f0a7a0", l2:"#e6ac52", l3:"#c4576d", gold:"#e6ac52", line:"230,172,82",
+               muted:"#b79bab", glow:"#4a2a44", bg:"#241726", edge:"#1c1220", card1:"#4a2a44", card2:"#2b1a2b"},
+    friends:  {l1:"#f5b39b", l2:"#ef7f52", l3:"#d24d54", gold:"#f2794f", line:"242,121,79",
+               muted:"#8fb3aa", glow:"#1f5d54", bg:"#123231", edge:"#08201f", card1:"#235c53", card2:"#10302c"},
+    strangers:{l1:"#e58aa2", l2:"#cf4f6d", l3:"#b23a56", gold:"#d24565", line:"210,69,101",
+               muted:"#8aacb6", glow:"#154f66", bg:"#0b2732", edge:"#05141d", card1:"#164e63", card2:"#0a2430"},
+  };
+  function applyTheme(cat){
+    const t = THEME[cat], r = document.documentElement.style;
+    r.setProperty('--l1', t.l1);
+    r.setProperty('--l2', t.l2);
+    r.setProperty('--l3', t.l3);
+    r.setProperty('--gold', t.gold);
+    r.setProperty('--line', t.line);
+    r.setProperty('--muted', t.muted);
+    r.setProperty('--bg-glow', t.glow);
+    r.setProperty('--bg-1', t.bg);
+    r.setProperty('--bg-edge', t.edge);
+    r.setProperty('--card-1', t.card1);
+    r.setProperty('--card-2', t.card2);
+  }
+
+  let category = "couples";
+  let level = "all";
+  let queue = [];
+  let flipped = false;
+
+  const card = document.getElementById('card');
+  const front = document.getElementById('front');
+  const qEl = document.getElementById('question');
+  const tierEl = document.getElementById('tier');
+  const idxEl = document.getElementById('idx');
+  const footRight = document.getElementById('footRight');
+  const meta = document.getElementById('meta');
+  const drawBtn = document.getElementById('draw');
+  const backHint = document.getElementById('backHint');
+  const backLabel = document.getElementById('backLabel');
+  const levelsEl = document.getElementById('levels');
+
+  function pool(){
+    return DECK
+      .map((c,i)=>i)
+      .filter(i => DECK[i].cat===category && (level==="all" || DECK[i].l===Number(level)));
+  }
+  function shuffle(a){
+    for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+    return a;
+  }
+  function rebuild(){ queue = shuffle(pool()); }
+  function reduceMotion(){ return window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
+
+  function renderLevels(){
+    const tiers = CATS[category].tiers;
+    levelsEl.innerHTML =
+      '<button class="lvl" data-l="all"><span class="dot"></span>All</button>' +
+      Object.keys(tiers).map(k =>
+        '<button class="lvl" data-l="'+k+'"><span class="dot"></span>'+tiers[k]+'</button>'
+      ).join('');
+    // set active
+    [...levelsEl.children].forEach(b => b.classList.toggle('active', b.dataset.l===level));
+  }
+
+  function paintFront(i){
+    const c = DECK[i];
+    const name = CATS[c.cat].tiers[c.l];
+    front.style.setProperty('--accent', TIER_COLOR[c.l]);
+    tierEl.textContent = name;
+    qEl.textContent = c.q;
+    const total = pool().length;
+    const drawnNo = total - queue.length;
+    idxEl.textContent = "No. " + String(drawnNo).padStart(2,'0');
+    footRight.textContent = String(drawnNo).padStart(2,'0') + " \u00b7 " + String(total).padStart(2,'0');
+  }
+
+  function draw(){
+    if(pool().length===0) return;
+    if(queue.length===0){ rebuild(); meta.textContent = "Deck reshuffled. Fresh round."; }
+    const i = queue.shift();
+    drawBtn.textContent = "Draw the next";
+    if(flipped){
+      card.classList.remove('flipped');
+      const swap = ()=>{ paintFront(i); requestAnimationFrame(()=>card.classList.add('flipped')); };
+      reduceMotion() ? swap() : setTimeout(swap, 320);
+    } else {
+      paintFront(i);
+      card.classList.add('flipped');
+      flipped = true;
+    }
+    setTimeout(updateMeta, 0);
+  }
+
+  function updateMeta(){
+    meta.textContent = queue.length + " of " + pool().length + " left in this deck";
+  }
+
+  function resetToBack(readyLabel){
+    card.classList.remove('flipped');
+    flipped = false;
+    drawBtn.textContent = "Draw a card";
+    backHint.textContent = "Tap to draw";
+    meta.textContent = readyLabel;
+  }
+
+  function readyText(){
+    const label = level==="all" ? "All levels" : CATS[category].tiers[Number(level)];
+    return CATS[category].name + " · " + label + " · " + pool().length + " cards ready";
+  }
+
+  // Category selection
+  document.getElementById('cats').addEventListener('click', (e)=>{
+    const btn = e.target.closest('.cat');
+    if(!btn) return;
+    document.querySelectorAll('.cat').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    category = btn.dataset.cat;
+    level = "all";
+    applyTheme(category);
+    backLabel.textContent = CATS[category].name;
+    renderLevels();
+    rebuild();
+    resetToBack(readyText());
+  });
+
+  // Level selection (delegated; buttons are re-rendered per category)
+  levelsEl.addEventListener('click', (e)=>{
+    const btn = e.target.closest('.lvl');
+    if(!btn) return;
+    [...levelsEl.children].forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    level = btn.dataset.l;
+    rebuild();
+    resetToBack(readyText());
+  });
+
+  card.addEventListener('click', draw);
+  drawBtn.addEventListener('click', draw);
+
+  // init
+  applyTheme(category);
+  renderLevels();
+  rebuild();
+  meta.textContent = readyText();
+</script>
+</body>
+</html>
