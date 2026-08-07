@@ -1,0 +1,15 @@
+{
+  "name": "betweenus",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Between Us · a card game for two",
+  "scripts": {
+    "dev": "vite --open",
+    "start": "vite --open",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^6.3.5"
+  }
+}

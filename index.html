@@ -19,10 +19,10 @@
     --bg-edge:#1c1220;
     --card-1:#4a2a44;
     --card-2:#2b1a2b;
-    /* level accents (light to deep) */
-    --l1:#f0a7a0; /* tier 1 - peach blush */
-    --l2:#e6ac52; /* tier 2 - honey gold */
-    --l3:#c4576d; /* tier 3 - garnet rose */
+    /* level accents (light → dark shades of the category accent) */
+    --l1:#f3d08a;
+    --l2:#e6ac52;
+    --l3:#d4923a;
     --gold:#e6ac52;
     --line:230,172,82; /* card-back accent, set per category */
   }
@@ -85,23 +85,48 @@
   .lvl{
     font-family:'Jost',sans-serif;font-size:12px;font-weight:500;
     letter-spacing:.16em;text-transform:uppercase;
-    color:var(--muted);background:transparent;
-    border:1px solid rgba(255,255,255,.14);
+    color:var(--c);
+    background:color-mix(in srgb, var(--c) 14%, transparent);
+    border:1px solid color-mix(in srgb, var(--c) 55%, transparent);
     padding:9px 15px;border-radius:100px;cursor:pointer;
     transition:all .25s ease;display:flex;align-items:center;gap:7px;
   }
-  .lvl .dot{width:8px;height:8px;border-radius:50%;background:currentColor;opacity:.85}
-  .lvl[data-l="1"]{--c:var(--l1)} .lvl[data-l="2"]{--c:var(--l2)}
-  .lvl[data-l="3"]{--c:var(--l3)} .lvl[data-l="all"]{--c:#e9d8c4}
-  .lvl:hover{color:#f4e9dd;border-color:rgba(255,255,255,.3)}
+  .lvl .dot{width:8px;height:8px;border-radius:50%;background:var(--c);opacity:.95}
+  .lvl[data-l="1"]{--c:var(--l1)}
+  .lvl[data-l="2"]{--c:var(--l2)}
+  .lvl[data-l="3"]{--c:var(--l3)}
+  .lvl[data-l="all"]{--c:var(--gold)}
+  .lvl:hover{
+    background:color-mix(in srgb, var(--c) 24%, transparent);
+    border-color:color-mix(in srgb, var(--c) 80%, transparent);
+  }
   .lvl.active{
     color:#241726;background:var(--c);border-color:var(--c);
     box-shadow:0 6px 22px -8px var(--c);
   }
-  .lvl.active .dot{background:#241726;opacity:.6}
+  .lvl.active .dot{background:#241726;opacity:.55}
 
-  /* ---- Card ---- */
-  .stage{perspective:1600px;width:100%;max-width:360px;margin-bottom:26px}
+  /* ---- Card / deck stage ---- */
+  .stage{
+    position:relative;width:100%;max-width:360px;margin-bottom:26px;
+    perspective:1600px;overflow:visible;
+  }
+  .deck-stack{
+    position:absolute;inset:0;pointer-events:none;z-index:0;
+  }
+  .deck-stack::before,
+  .deck-stack::after{
+    content:"";position:absolute;inset:0;border-radius:22px;
+    background:linear-gradient(150deg,var(--card-1),var(--card-2));
+    border:1px solid rgba(var(--line),.28);
+  }
+  .deck-stack::before{transform:translate(5px,7px) rotate(1.4deg);opacity:.55}
+  .deck-stack::after{transform:translate(2px,3px) rotate(.6deg);opacity:.8}
+  .deal{
+    position:relative;z-index:1;width:100%;
+    transition:transform .42s cubic-bezier(.22,.7,.2,1), opacity .32s ease;
+    will-change:transform,opacity;
+  }
   .card{
     position:relative;width:100%;aspect-ratio:63/88;
     transform-style:preserve-3d;
@@ -176,23 +201,59 @@
   }
   .front .foot .quiet{font-style:italic;font-family:'Fraunces',serif;text-transform:none;letter-spacing:0;font-size:12px}
 
+  /* deck-draw / put-back motion (after the first flip) */
+  .deal.exit-down{
+    transform:translateY(118%) rotate(-3deg) scale(.96);
+    opacity:0;
+  }
+  .deal.exit-up{
+    transform:translateY(-42%) rotate(2deg) scale(.94);
+    opacity:0;
+  }
+  .deal.enter-down{
+    animation:cardEnterDown .48s cubic-bezier(.22,.7,.2,1) both;
+  }
+  .deal.enter-up{
+    animation:cardEnterUp .48s cubic-bezier(.22,.7,.2,1) both;
+  }
+  @keyframes cardEnterDown{
+    from{transform:translateY(-36%) rotate(2.5deg) scale(.94);opacity:0}
+    to{transform:none;opacity:1}
+  }
+  @keyframes cardEnterUp{
+    from{transform:translateY(70%) rotate(-2deg) scale(.96);opacity:0}
+    to{transform:none;opacity:1}
+  }
+
   /* ---- Controls ---- */
   .controls{display:flex;flex-direction:column;align-items:center;gap:14px;width:100%;max-width:360px}
-  .draw{
-    width:100%;font-family:'Jost',sans-serif;font-weight:600;
+  .actions{display:flex;gap:10px;width:100%}
+  .draw,.prev{
+    font-family:'Jost',sans-serif;font-weight:600;
     font-size:14px;letter-spacing:.16em;text-transform:uppercase;
-    color:#241726;background:var(--gold);border:none;
-    padding:16px;border-radius:100px;cursor:pointer;
-    transition:transform .15s ease, box-shadow .25s ease, background .25s ease;
+    border:none;padding:16px;border-radius:100px;cursor:pointer;
+    transition:transform .15s ease, box-shadow .25s ease, background .25s ease, opacity .2s ease, color .2s ease, border-color .2s ease;
+  }
+  .draw{
+    flex:1;color:#241726;background:var(--gold);
     box-shadow:0 12px 30px -12px var(--gold);
   }
   .draw:hover{transform:translateY(-2px)}
   .draw:active{transform:translateY(0)}
+  .prev{
+    flex:0 0 auto;min-width:118px;color:var(--ink);
+    background:transparent;border:1px solid rgba(255,255,255,.18);
+  }
+  .prev:hover:not(:disabled){color:#f4e9dd;border-color:rgba(255,255,255,.34);transform:translateY(-2px)}
+  .prev:active:not(:disabled){transform:translateY(0)}
+  .prev:disabled{opacity:.35;cursor:default}
   .meta{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);text-align:center;min-height:16px}
 
   @media (prefers-reduced-motion: reduce){
-    .card{transition:none}
-    .draw{transition:none}
+    .card,.deal{transition:none;animation:none !important}
+    .deal.exit-down,.deal.exit-up{transform:none;opacity:0}
+    .deal.enter-down,.deal.enter-up{animation:none}
+    .draw,.prev{transition:none}
   }
 </style>
 </head>
@@ -212,30 +273,36 @@
   <div class="levels" id="levels"></div>
 
   <div class="stage">
-    <div class="card" id="card">
-      <div class="face back">
-        <span class="corner tl">&amp;</span>
-        <span class="corner br">&amp;</span>
-        <div class="ring"><span class="amp">&amp;</span></div>
-        <div class="label" id="backLabel">Couples</div>
-        <div class="hint" id="backHint">Tap to draw</div>
-      </div>
-      <div class="face front" id="front">
-        <div class="top">
-          <span class="tier" id="tier">Spark</span>
-          <span class="idx" id="idx"></span>
+    <div class="deck-stack" aria-hidden="true"></div>
+    <div class="deal" id="deal">
+      <div class="card" id="card">
+        <div class="face back">
+          <span class="corner tl">&amp;</span>
+          <span class="corner br">&amp;</span>
+          <div class="ring"><span class="amp">&amp;</span></div>
+          <div class="label" id="backLabel">Couples</div>
+          <div class="hint" id="backHint">Tap to draw</div>
         </div>
-        <div class="q" id="question"></div>
-        <div class="foot">
-          <span class="quiet">Take turns.</span>
-          <span id="footRight"></span>
+        <div class="face front" id="front">
+          <div class="top">
+            <span class="tier" id="tier">Spark</span>
+            <span class="idx" id="idx"></span>
+          </div>
+          <div class="q" id="question"></div>
+          <div class="foot">
+            <span class="quiet">Take turns.</span>
+            <span id="footRight"></span>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
   <div class="controls">
-    <button class="draw" id="draw">Draw a card</button>
+    <div class="actions">
+      <button class="prev" id="prev" type="button" disabled>Previous</button>
+      <button class="draw" id="draw" type="button">Draw a card</button>
+    </div>
     <div class="meta" id="meta"></div>
   </div>
 
@@ -482,14 +549,13 @@
   };
   const TIER_COLOR = {1:"var(--l1)", 2:"var(--l2)", 3:"var(--l3)"};
 
-  // Each category has its own colour identity: three tier accents (light to deep),
-  // a UI accent (buttons / active pills), and a card-back line colour.
+  // Tier accents are light → dark shades of each category's accent colour.
   const THEME = {
-    couples:  {l1:"#f0a7a0", l2:"#e6ac52", l3:"#c4576d", gold:"#e6ac52", line:"230,172,82",
+    couples:  {l1:"#f3d08a", l2:"#e6ac52", l3:"#d4923a", gold:"#e6ac52", line:"230,172,82",
                muted:"#b79bab", glow:"#4a2a44", bg:"#241726", edge:"#1c1220", card1:"#4a2a44", card2:"#2b1a2b"},
-    friends:  {l1:"#f5b39b", l2:"#ef7f52", l3:"#d24d54", gold:"#f2794f", line:"242,121,79",
+    friends:  {l1:"#f7b090", l2:"#f2794f", l3:"#e05a35", gold:"#f2794f", line:"242,121,79",
                muted:"#8fb3aa", glow:"#1f5d54", bg:"#123231", edge:"#08201f", card1:"#235c53", card2:"#10302c"},
-    strangers:{l1:"#e58aa2", l2:"#cf4f6d", l3:"#b23a56", gold:"#d24565", line:"210,69,101",
+    strangers:{l1:"#e890a4", l2:"#d24565", l3:"#c03a58", gold:"#d24565", line:"210,69,101",
                muted:"#8aacb6", glow:"#154f66", bg:"#0b2732", edge:"#05141d", card1:"#164e63", card2:"#0a2430"},
   };
   function applyTheme(cat){
@@ -510,8 +576,12 @@
   let category = "couples";
   let level = "all";
   let queue = [];
-  let flipped = false;
+  let history = [];
+  let pos = -1;
+  let showing = false;
+  let animating = false;
 
+  const deal = document.getElementById('deal');
   const card = document.getElementById('card');
   const front = document.getElementById('front');
   const qEl = document.getElementById('question');
@@ -520,6 +590,7 @@
   const footRight = document.getElementById('footRight');
   const meta = document.getElementById('meta');
   const drawBtn = document.getElementById('draw');
+  const prevBtn = document.getElementById('prev');
   const backHint = document.getElementById('backHint');
   const backLabel = document.getElementById('backLabel');
   const levelsEl = document.getElementById('levels');
@@ -533,8 +604,11 @@
     for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
     return a;
   }
-  function rebuild(){ queue = shuffle(pool()); }
+  function rebuild(){ queue = shuffle(pool()); history = []; pos = -1; }
   function reduceMotion(){ return window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
+  function clearMotionClasses(){
+    deal.classList.remove('exit-down','exit-up','enter-down','enter-up');
+  }
 
   function renderLevels(){
     const tiers = CATS[category].tiers;
@@ -554,36 +628,105 @@
     tierEl.textContent = name;
     qEl.textContent = c.q;
     const total = pool().length;
-    const drawnNo = total - queue.length;
+    const drawnNo = pos + 1;
     idxEl.textContent = "No. " + String(drawnNo).padStart(2,'0');
     footRight.textContent = String(drawnNo).padStart(2,'0') + " \u00b7 " + String(total).padStart(2,'0');
   }
 
-  function draw(){
-    if(pool().length===0) return;
-    if(queue.length===0){ rebuild(); meta.textContent = "Deck reshuffled. Fresh round."; }
-    const i = queue.shift();
+  function showCard(i, direction){
     drawBtn.textContent = "Draw the next";
-    if(flipped){
-      card.classList.remove('flipped');
-      const swap = ()=>{ paintFront(i); requestAnimationFrame(()=>card.classList.add('flipped')); };
-      reduceMotion() ? swap() : setTimeout(swap, 320);
-    } else {
+    prevBtn.disabled = pos <= 0;
+    const dir = direction === "up" ? "up" : "down";
+
+    if(reduceMotion()){
+      clearMotionClasses();
       paintFront(i);
       card.classList.add('flipped');
-      flipped = true;
+      showing = true;
+      animating = false;
+      updateMeta();
+      return;
     }
-    setTimeout(updateMeta, 0);
+
+    if(animating) return;
+    animating = true;
+
+    // First card: flip from the deck back
+    if(!showing){
+      paintFront(i);
+      void card.offsetWidth;
+      card.classList.add('flipped');
+      showing = true;
+      const done = (e)=>{
+        if(e.propertyName && e.propertyName !== 'transform'){
+          card.addEventListener('transitionend', done, {once:true});
+          return;
+        }
+        animating = false;
+        updateMeta();
+      };
+      card.addEventListener('transitionend', done, {once:true});
+      setTimeout(()=>{ if(animating){ animating = false; updateMeta(); } }, 700);
+      return;
+    }
+
+    // Later cards: pull / put-back slide on the deal wrapper
+    const finishEnter = ()=>{
+      clearMotionClasses();
+      paintFront(i);
+      void deal.offsetWidth;
+      deal.classList.add(dir === "up" ? "enter-up" : "enter-down");
+      const done = ()=>{
+        deal.classList.remove('enter-down','enter-up');
+        animating = false;
+        updateMeta();
+      };
+      deal.addEventListener('animationend', done, {once:true});
+    };
+
+    clearMotionClasses();
+    deal.classList.add(dir === "up" ? "exit-up" : "exit-down");
+    setTimeout(finishEnter, 300);
+  }
+
+  function draw(){
+    if(animating || pool().length===0) return;
+    // Stepped back: advance through already-drawn cards first
+    if(pos >= 0 && pos < history.length - 1){
+      pos++;
+      showCard(history[pos], "down");
+      return;
+    }
+    if(queue.length===0){
+      queue = shuffle(pool());
+      history = [];
+      pos = -1;
+      meta.textContent = "Deck reshuffled. Fresh round.";
+    }
+    const i = queue.shift();
+    history.push(i);
+    pos = history.length - 1;
+    showCard(i, "down");
+  }
+
+  function previous(){
+    if(animating || pos <= 0) return;
+    pos--;
+    showCard(history[pos], "up");
   }
 
   function updateMeta(){
-    meta.textContent = queue.length + " of " + pool().length + " left in this deck";
+    const left = queue.length + Math.max(0, history.length - 1 - pos);
+    meta.textContent = left + " of " + pool().length + " left in this deck";
   }
 
   function resetToBack(readyLabel){
+    clearMotionClasses();
     card.classList.remove('flipped');
-    flipped = false;
+    showing = false;
+    animating = false;
     drawBtn.textContent = "Draw a card";
+    prevBtn.disabled = true;
     backHint.textContent = "Tap to draw";
     meta.textContent = readyLabel;
   }
@@ -621,6 +764,7 @@
 
   card.addEventListener('click', draw);
   drawBtn.addEventListener('click', draw);
+  prevBtn.addEventListener('click', previous);
 
   // init
   applyTheme(category);
